@@ -1,0 +1,1 @@
+# quotex-m1-scanner
