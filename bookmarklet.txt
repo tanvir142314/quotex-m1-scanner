@@ -1,0 +1,23 @@
+javascript:(async()=>{if(window.__ASP){window.__ASP.remove();delete window.__ASP;return}const e=document.createElement('div');e.id='asp';e.innerHTML=`<div id="h"><b>⚡ Auto Scanner Pro</b><button id="x">×</button></div><div id="b"><div class="p">REAL M1 MARKET DATA</div><div id="pair">EUR/USD</div><div id="sig">LOADING…</div><div id="score">Score: --%</div><div id="why">Fetching candles…</div><div id="vals">RSI -- · EMA9 -- · EMA21 --</div><div id="f">FVG -- · Sweep --</div><div id="cd">Refresh: 60s</div><div class="bb"><button id="u">UP ↑</button><button id="d">DOWN ↓</button></div><small>Manual execution only.</small></div>`;e.style='position:fixed;z-index:2147483647;right:10px;bottom:85px;width:300px;background:#171827;color:#fff;border:1px solid #4b4c61;border-radius:18px;box-shadow:0 18px 55px #0009;font:14px system-ui;overflow:hidden';document.body.appendChild(e);window.__ASP=e;const st=document.createElement('style');st.textContent='#h{padding:12px 14px;background:linear-gradient(90deg,#ec3db5,#8739f5);display:flex;justify-content:space-between}#h button{border:0;background:none;color:#fff;font-size:22px}#b{padding:15px;text-align:center}.p{font-size:10px;letter-spacing:1px;color:#8ee7b7}#pair{margin-top:5px;color:#bbb}#sig{font-size:30px;font-weight:900;margin:10px 0;color:#ff58c7}#score{font-weight:800;margin-bottom:7px}#why,#vals,#f{font-size:11px;color:#c5c2ce;margin:5px 0}.bb{display:flex;gap:8px;margin-top:13px}.bb button{flex:1;border:0;border-radius:10px;padding:10px;color:#fff;font-weight:900}.bb #u{background:#18a765}.bb #d{background:#e84b42}small{display:block;color:#888;margin-top:10px}';document.head.appendChild(st);
+const close=()=>{e.remove();st.remove();delete window.__ASP};e.querySelector('#x').onclick=close;
+const ema=(a,p)=>{const k=2/(p+1);let v=a[0];for(let i=1;i<a.length;i++)v=a[i]*k+v*(1-k);return v};
+const rsi=a=>{let g=0,l=0;for(let i=a.length-14;i<a.length;i++){const d=a[i]-a[i-1];if(d>=0)g+=d;else l-=d}g/=14;l/=14;return l===0?100:100-100/(1+g/l)};
+function analyze(c){
+ const closes=c.map(x=>x.close), n=c.length, last=c[n-1], r=rsi(closes), e9=ema(closes.slice(-60),9), e21=ema(closes.slice(-60),21);
+ const look=8, prev=c.slice(n-1-look,n-1); const low=Math.min(...prev.map(x=>x.low)), high=Math.max(...prev.map(x=>x.high));
+ const bullSweep=last.low<low && last.close>low, bearSweep=last.high>high && last.close<high;
+ const a=c[n-3], b=c[n-2], z=c[n-1];
+ const bullFvg=b.low>a.high, bearFvg=b.high<a.low;
+ let up=0,down=0;
+ if(e9>e21)up+=25;else down+=25;
+ if(r<35)up+=18;else if(r>65)down+=18;else if(r>=50)up+=8;else down+=8;
+ if(bullSweep)up+=25;if(bearSweep)down+=25;
+ if(bullFvg)up+=17;if(bearFvg)down+=17;
+ if(z.close>z.open)up+=8;else down+=8;
+ const raw=Math.max(up,down), direction=up>=down?'UP':'DOWN', score=Math.min(99,Math.round(55+raw*0.44));
+ return {direction,score,rsi:Math.round(r*10)/10,ema9:e9,ema21:e21,bullSweep,bearSweep,bullFvg,bearFvg};
+}
+async function fetchC(){const symbol=(prompt('Pair (e.g. EUR/USD):','EUR/USD')||'EUR/USD').trim();e.querySelector('#pair').textContent=symbol;const base=location.origin;const u=base+'/api/candles?symbol='+encodeURIComponent(symbol)+'&interval=1min';const rr=await fetch(u);const j=await rr.json();if(!rr.ok||j.error)throw Error(j.error||'Data error');return j.values}
+async function run(){try{const c=await fetchC();if(c.length<30)throw Error('Not enough M1 candles');const a=analyze(c);e.querySelector('#sig').textContent=a.direction;e.querySelector('#score').textContent='Score: '+a.score+'%';e.querySelector('#why').textContent=(a.ema9>a.ema21?'EMA trend bullish':'EMA trend bearish')+' · last candle '+(c.at(-1).close>c.at(-1).open?'bullish':'bearish');e.querySelector('#vals').textContent='RSI '+a.rsi+' · EMA9 '+a.ema9.toFixed(5)+' · EMA21 '+a.ema21.toFixed(5);e.querySelector('#f').textContent='FVG '+(a.bullFvg?'bullish':a.bearFvg?'bearish':'none')+' · Sweep '+(a.bullSweep?'bullish':a.bearSweep?'bearish':'none')}catch(err){e.querySelector('#sig').textContent='DATA ERROR';e.querySelector('#why').textContent=err.message}n=60}
+e.querySelector('#u').onclick=()=>alert('UP selected. Execute manually in the trading platform.');e.querySelector('#d').onclick=()=>alert('DOWN selected. Execute manually in the trading platform.');
+let n=0;await run();const iv=setInterval(()=>{if(!document.body.contains(e)){clearInterval(iv);return}n--;e.querySelector('#cd').textContent='Refresh: '+Math.max(0,n)+'s';if(n<=0)run()},1000)})()

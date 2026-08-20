@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/candles.js": {
+      "maxDuration": 10
+    }
+  },
+  "cleanUrls": true,
+  "trailingSlash": false
+}
